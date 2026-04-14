@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Keith Singi — Web Developer</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -746,22 +746,13 @@
   <span id="toastMsg"></span>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  // ─── EmailJS CONFIG ───────────────────────────────────────────────
-  // 1. Sign up free at https://www.emailjs.com
-  // 2. Create a Service (Gmail/Outlook etc.) → copy the Service ID below
-  // 3. Create an Email Template → copy the Template ID below
-  //    Template variables to use: {{from_name}}, {{from_email}}, {{message}}
-  // 4. Go to Account → copy your Public Key below
-  const EMAILJS_PUBLIC_KEY  = 'Mk-MJSjPoUlQNBKct';
-  const EMAILJS_SERVICE_ID  = 'service_ly5fofa';
-  const EMAILJS_TEMPLATE_ID = 'template_r0ctq4i';
-
-  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+<script>
+  // ─── FORMSPREE CONFIG ─────────────────────────────────────────────
+  const FORMSPREE_URL = 'https://formspree.io/f/xojyqypa';
 
   // ─── TOAST HELPER ────────────────────────────────────────────────
   function showToast(type, message) {
-    const toast   = document.getElementById('toast');
+    const toast     = document.getElementById('toast');
     const toastMsg  = document.getElementById('toastMsg');
     const toastIcon = document.getElementById('toastIcon');
     toast.className = 'toast ' + type;
@@ -771,8 +762,8 @@
     setTimeout(() => toast.classList.remove('show'), 4500);
   }
 
-  // ─── SEND MESSAGE ─────────────────────────────────────────────────
-  document.getElementById('sendBtn').addEventListener('click', function () {
+  // ─── SEND MESSAGE via FORMSPREE ───────────────────────────────────
+  document.getElementById('sendBtn').addEventListener('click', async function () {
     const name    = document.getElementById('name').value.trim();
     const email   = document.getElementById('email').value.trim();
     const message = document.getElementById('message').value.trim();
@@ -793,26 +784,29 @@
     btn.disabled = true;
     btn.textContent = 'Sending…';
 
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      from_name:  name,
-      from_email: email,
-      message:    message,
-      reply_to:   email,
-    })
-    .then(() => {
-      showToast('success', 'Message sent! I\'ll be in touch soon.');
-      document.getElementById('name').value    = '';
-      document.getElementById('email').value   = '';
-      document.getElementById('message').value = '';
-    })
-    .catch(err => {
-      console.error('EmailJS error:', err);
-      showToast('error', 'Failed to send. Please try again.');
-    })
-    .finally(() => {
+    try {
+      const response = await fetch(FORMSPREE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ name, email, message })
+      });
+
+      if (response.ok) {
+        showToast('success', "Message sent! I'll be in touch soon.");
+        document.getElementById('name').value    = '';
+        document.getElementById('email').value   = '';
+        document.getElementById('message').value = '';
+      } else {
+        const data = await response.json();
+        showToast('error', data?.errors?.[0]?.message || 'Failed to send. Please try again.');
+      }
+    } catch (err) {
+      console.error('Formspree error:', err);
+      showToast('error', 'Network error. Please try again.');
+    } finally {
       btn.disabled = false;
       btn.textContent = 'Send Message →';
-    });
+    }
   });
 
   // ─── CURSOR ───────────────────────────────────────────────────────
